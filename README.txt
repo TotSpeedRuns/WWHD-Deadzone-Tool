@@ -4,6 +4,15 @@ Author: Tot_sr
 Capture the current native controller settings and restore the selected profile
 when European WWHD v0 or TWWHD-GZ launches under Aroma.
 
+Requirements
+------------
+Aroma Beta 26 or newer is required for this WUPS 0.9.1 build. Use the latest
+Aroma release and update its modules together before installing this plugin.
+Official releases: https://github.com/wiiu-env/Aroma/releases
+An outdated Aroma installation was reported to black-screen at boot with this
+plugin. If this happens, power off, remove WWHDDeadzone.wps from the SD plugin
+folder using a PC, update Aroma, and then reinstall the plugin.
+
 Use
 ---
 1. Install WWHDDeadzone.wps in SD:/wiiu/environments/aroma/plugins/ and restart.

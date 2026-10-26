@@ -73,6 +73,15 @@ The tool was also tested on a vanilla European copy of The Wind Waker HD,
 as reported by Tot_sr. The detailed before/after telemetry checks above were
 performed on TWWHD-GZ; equivalent telemetry was not collected for the vanilla test.
 
+Version 1.2.0 was also checked on the North American TWWHD Randomizer channel
+(0005000010143599). After installing and restarting, both controllers' native
+calibration matched the saved EUR/GZ captures, each recorded one restore write,
+and verification continued during sampling. Both input channels were observed;
+the sample did not record nonzero stick input. This check establishes native
+state restoration in that randomizer session, not a physical response curve or
+a separate before/after randomizer restart pair. Vanilla North American WWHD
+is enabled by its title ID but has not been separately tested on hardware.
+
 These results verify the tested cases, rather than every firmware/library revision
 or controller. They do not establish a complete physical response curve or
 first-buffered-sample equivalence. Games can apply additional input filtering.

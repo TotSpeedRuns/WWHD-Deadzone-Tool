@@ -17,8 +17,24 @@
     "version": "1.2.0",
     "change": "Add exact North American WWHD and TWWHD Randomizer title IDs; calibration implementation unchanged",
     "randomizer_upstream_commit": "cb7b1c979ac031c8eae91e23fb00fc5f4d042efa",
-    "north_american_hardware_tested": false,
-    "randomizer_hardware_tested": false
+    "north_american_hardware_tested": true,
+    "randomizer_hardware_tested": true,
+    "vanilla_north_american_hardware_tested": false,
+    "randomizer_testing": {
+      "date": "2026-10-26",
+      "title_id": "0005000010143599",
+      "read_only_telemetry": true,
+      "gamepad_saved_eur_gz_calibration_matches": true,
+      "gamepad_restore_writes": 1,
+      "pro_saved_eur_gz_identity_and_centers_match": true,
+      "pro_restore_writes": 1,
+      "both_input_channels_observed": true,
+      "nonzero_stick_input_observed": false,
+      "separate_randomizer_restart_pair_tested": false,
+      "full_physical_response_curve_tested": false,
+      "release_wps_sha256": "5a2ff443217a6430e9d4c784a2bd5e18985425378238ce234ee426a8038ca576",
+      "release_binary_unchanged_from_tested_build": true
+    }
   },
   "vanilla_eur_testing": {
     "tested": true,

@@ -71,9 +71,14 @@ Supported title IDs:
 Version 1.2.0 adds the North American game and randomizer channel to the launch
 guard; the native capture/restore implementation and saved profile format are
 unchanged. The selected profile is shared across supported titles, with no need
-to capture again when switching games with the same controllers. Randomizer and
-North American console acceptance testing is still pending; the EUR/GZ testing
-above does not establish randomizer compatibility on hardware.
+to capture again when switching games with the same controllers. Version 1.2.0
+was also checked on a Wii U running the North American randomizer channel after
+installing and restarting: both controllers matched their saved EUR/GZ native
+calibration, each registered one restore write, and readback verification
+continued during sampling. Both input channels were observed, but no nonzero
+stick input was recorded in that sample. This verifies native state restoration;
+it is not a physical response-curve test or a separate randomizer restart-pair
+test. Vanilla North American WWHD has not been separately tested on hardware.
 The randomizer channel ID is defined by upstream TWWHD Randomizer:
 https://github.com/SuperDude88/TWWHD-Randomizer/blob/cb7b1c979ac031c8eae91e23fb00fc5f4d042efa/tweaks.cpp#L840
 Custom repacks with a different title ID are not enabled automatically.

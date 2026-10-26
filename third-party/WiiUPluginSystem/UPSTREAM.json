@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/wiiu-env/WiiUPluginSystem",
+  "commit": "0e26d9fd2d9db6c356c973a1a79000757802d883",
+  "license": "LGPL-3.0",
+  "scope": [
+    "include/",
+    "libraries/libwups/",
+    "share/",
+    "LICENSE",
+    "Makefile",
+    "README.MD"
+  ],
+  "modifications": "None; source files copied verbatim from the pinned commit."
+}

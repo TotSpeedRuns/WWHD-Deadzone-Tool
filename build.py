@@ -5,8 +5,9 @@ import argparse, subprocess, os, hashlib, json
 root = Path(__file__).resolve().parent
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--sdk', type=Path, required=True, help='devkitpro root containing wut, devkitPPC and tools')
-p.add_argument('--wups', type=Path, required=True, help='WiiUPluginSystem source checkout')
+p.add_argument('--wups', type=Path, default=root/'third-party/WiiUPluginSystem', help='WUPS source (defaults to the included pinned source)')
 p.add_argument('--build-dir', type=Path, required=True)
+p.add_argument('--output', type=Path, default=root/'WWHDDeadzone.wps', help='Output WPS; report is written beside it')
 a = p.parse_args()
 sdk, wups, build = a.sdk.resolve(), a.wups.resolve(), a.build_dir.resolve()
 build.mkdir(parents=True, exist_ok=True)
@@ -24,7 +25,8 @@ for name in units:
 for source in sorted((root/'source').glob('*.cpp')):
     obj = build/('plugin_'+source.stem+'.o')
     run([cc,*flags,'-c',source,'-o',obj]); objects.append(obj)
-elf, wps = build/'WWHDDeadzone.elf', root/'WWHDDeadzone.wps'
+elf, wps = build/'WWHDDeadzone.elf', a.output.resolve()
+wps.parent.mkdir(parents=True, exist_ok=True)
 run([cc,*flags,'-specs='+str(sdk/'wut/share/wut.specs'),'-specs='+str(wups/'share/wups.specs'),'-T'+str(wups/'share/wups.ld'),'-Wl,-Map,'+str(build/'WWHDDeadzone.map'),'-o',elf,*objects,'-L'+str(sdk/'wut/lib'),'-L'+str(sdk/'wut/usr/lib'),'-lwut'])
 run([sdk/f'tools/bin/elf2rpl{suffix}',elf,wps])
 data = bytearray(wps.read_bytes())
@@ -32,8 +34,10 @@ assert data[:4] == b'\x7fELF'
 data[9:11] = b'PL' # WUPS plugin marker; official wups_rules does the same.
 wps.write_bytes(data)
 run([sdk/f'devkitPPC/bin/powerpc-eabi-readelf{suffix}','-h',wps])
+provenance = wups/'UPSTREAM.json'
+commit = json.loads(provenance.read_text())['commit'] if provenance.exists() else subprocess.check_output(['git','-C',str(wups),'rev-parse','HEAD'], text=True).strip()
 report = dict(compiled=True, hardware_tested=False, native_pro_capture='GamePad and Pro core restore verified after restart on GZ; see validation.json',
               wps_bytes=len(data), sha256=hashlib.sha256(data).hexdigest(),
-              wups_commit=subprocess.check_output(['git','-C',str(wups),'rev-parse','HEAD'], text=True).strip())
-(root/'build-report.json').write_text(json.dumps(report,indent=2)+'\n')
+              wups_commit=commit)
+(wps.parent/'build-report.json').write_text(json.dumps(report,indent=2)+'\n')
 print(json.dumps(report,indent=2))

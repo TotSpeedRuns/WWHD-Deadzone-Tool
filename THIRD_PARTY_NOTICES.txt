@@ -1,0 +1,26 @@
+License scopes
+==============
+Original WWHD Deadzone Tool source is MIT licensed; see LICENSE.txt.
+Author: Tot_sr.
+
+Wii U Plugin System (WUPS) is a separately licensed LGPL-3.0 dependency.
+Its unmodified source, headers and build/link scripts used by this plugin are
+provided as readable text under third-party/WiiUPluginSystem/. UPSTREAM.json
+pins the exact commit. Existing upstream file notices are retained.
+
+LGPL-3.0 incorporates GPL-3.0 terms, so both license texts are provided:
+third-party/WUPS-LGPL-3.0.txt and third-party/GPL-3.0.txt.
+These are dependency notices; the root MIT notice applies to the project's own
+source. It does not replace licenses on dependencies or their individual files.
+
+The WPS statically links WUPS implementation code. Source and build instructions
+are provided so users can rebuild with changes to WUPS. See BUILDING.md.
+Generated object/ELF files and source ZIP archives are no longer tracked. The
+Docker build compiles the included WUPS sources rather than hiding them in a
+precompiled archive. You can edit those sources and rebuild/reinstall the WPS.
+
+WUT is an external SDK dependency under its own license. Its notice is retained
+in third-party/WUT-LICENSE.txt; upstream: https://github.com/devkitPro/wut.
+The devkitPPC compiler, WUT and system/game binaries are not vendored here.
+
+Dependency snapshot: https://github.com/wiiu-env/WiiUPluginSystem/tree/0e26d9fd2d9db6c356c973a1a79000757802d883

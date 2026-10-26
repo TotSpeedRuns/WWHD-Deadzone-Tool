@@ -67,6 +67,11 @@ validated before calibration access. No game or system binaries are shipped.
 
 Build and tests
 ---------------
+Docker builds need only Docker on the host:
+  PowerShell: ./build-docker.ps1
+  Bash:       bash build-docker.sh
+See BUILDING.md for outputs, local SDK builds and modifying/rebuilding WUPS.
+
 python build.py --sdk PATH_TO_DEVKITPRO --wups PATH_TO_WUPS_SOURCE --build-dir BUILD_DIR
 Dependencies used: GCC 15.2.0, newlib 4.6.0.20260123, wut 1.9.1 and WUPS 0.9.1.
 WUPS commit: 0e26d9fd2d9db6c356c973a1a79000757802d883.
@@ -90,7 +95,9 @@ Raw captures/configs contain controller identities; do not publish them.
 
 Licenses
 --------
-Plugin source: MIT, Tot_sr. Linked WUPS library: LGPL-3.0. Exact source and licenses
-are included under third-party; relinkable objects/ELF are in the repository
-under relink/. The release ZIP contains only the installable wiiu folder.
-WUT license: third-party/WUT-LICENSE.txt. See native-pro-research.txt for details.
+Plugin source: MIT, Tot_sr. WUPS retains its separate LGPL-3.0 license.
+LGPL-3.0 incorporates GPL-3.0 terms; both dependency texts are included.
+Readable pinned WUPS source/build files are in third-party/WiiUPluginSystem/.
+Generated binaries and source ZIP archives are not tracked. See
+THIRD_PARTY_NOTICES.txt for license scopes and BUILDING.md to rebuild with
+modified dependencies. The release ZIP contains only the installable wiiu folder.

@@ -1,0 +1,24 @@
+name: Docker build
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/audit_source.py
+      - run: docker build --platform linux/amd64 -t wwhd-deadzone-builder .
+      - run: |
+          mkdir -p dist
+          docker run --rm --platform linux/amd64 --user "$(id -u):$(id -g)" \
+            --mount "type=bind,source=$PWD,target=/project,readonly" \
+            --mount "type=bind,source=$PWD/dist,target=/output" wwhd-deadzone-builder
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WWHD-Deadzone-Tool
+          path: |
+            dist/WWHD-Deadzone-Tool.zip
+            dist/build-report.json
+          if-no-files-found: error

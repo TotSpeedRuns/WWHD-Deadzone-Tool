@@ -1,0 +1,16 @@
+{
+  "tested_build": "1.1.3-lock-test",
+  "release": "1.1.3",
+  "release_code_change": "Version metadata only after hardware check",
+  "environment": "One Wii U running TWWHD-GZ",
+  "new_session": true,
+  "saved_profiles_unchanged": true,
+  "gamepad_centers_clamps_lock_cross_match": true,
+  "gamepad_restore_writes": 1,
+  "pro_identity_and_centers_match": true,
+  "pro_restore_writes": 1,
+  "movement_observed_on_both_controllers": true,
+  "full_physical_response_curve_tested": false,
+  "friend_vanilla_eur_acceptance_pending": true,
+  "host_profile_migration_and_origin_readiness_tests_passed": true
+}

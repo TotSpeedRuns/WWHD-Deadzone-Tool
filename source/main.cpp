@@ -1,6 +1,7 @@
 #include "deadzone.hpp"
 #include "title.hpp"
 #include "native_pro.hpp"
+#include "native_pad.hpp"
 #include "profile_bank.hpp"
 #include <atomic>
 #include <bit>
@@ -16,7 +17,7 @@
 
 WUPS_PLUGIN_NAME("WWHD Deadzone Tool");
 WUPS_PLUGIN_DESCRIPTION("Capture and restore GamePad thresholds and per-device Pro stick origins");
-WUPS_PLUGIN_VERSION("1.0.0");
+WUPS_PLUGIN_VERSION("1.1.3");
 WUPS_PLUGIN_AUTHOR("Tot_sr");
 WUPS_PLUGIN_LICENSE("MIT");
 WUPS_USE_STORAGE("wwhd_deadzone_lab");
@@ -32,7 +33,7 @@ struct Profile {
 static Profile profiles[CONTROLLERS];
 static std::atomic<bool> active{false}, paused{false}, replay{false};
 static std::atomic<int> clamps[4]; // left max/min, right max/min
-static std::atomic<bool> savedClamps{false};
+static std::atomic<bool> savedClamps{false}, fullGamepad{false};
 static int captureResult = 0;
 static presets::Bank bank = presets::defaults();
 static bool naming = false;
@@ -40,10 +41,13 @@ static unsigned cursor = 0;
 static char draft[presets::nameSize]{};
 static bool applyPreset() {
     const auto &e=bank.entries[bank.selected];
-    if (!nativepro::setSnapshot(e.pro)) return false;
+    nativepro::Snapshot previous;
+    if (!nativepro::getSnapshot(previous) || !nativepro::setSnapshot(e.pro)) return false;
+    if (!nativepad::setSnapshot(e.gamepad)) { nativepro::setSnapshot(previous);return false; }
     savedClamps.store(false);
     for (int i=0;i<4;++i) clamps[i].store(e.clamps[i]);
     savedClamps.store(e.gamepadValid!=0);
+    fullGamepad.store(e.gamepad.schema!=0);
     replay.store(e.gamepadValid!=0);
     captureResult = 0;
     return true;
@@ -92,19 +96,16 @@ static void closed() {
     const bool capture = captureRequested;
     int gamepadCaptured = 0;
     if (captureRequested && active.load() && profiles[0].seen.load()) {
-        int v[4] = {};
-        VPADGetLStickClampThreshold(VPAD_CHAN_0, &v[0], &v[1]);
-        VPADGetRStickClampThreshold(VPAD_CHAN_0, &v[2], &v[3]);
-        if (validClamps(v)) {
-            for (int j = 0; j < 4; ++j) clamps[j].store(v[j]);
-            savedClamps.store(true);
-            replay.store(true);
-            captureResult = 1;
-            gamepadCaptured = 1;
-            std::snprintf(status, sizeof(status), "Captured GamePad clamps L %d/%d R %d/%d (max/min).", v[0], v[1], v[2], v[3]);
+        nativepad::Snapshot captured;
+        if (nativepad::capture(captured)) {
+            bank.entries[bank.selected].gamepad=captured;
+            fullGamepad.store(true);
+            for (int j=0;j<4;++j) clamps[j].store(captured.clamps[j]);
+            savedClamps.store(true);replay.store(true);captureResult=1;gamepadCaptured=1;
+            std::snprintf(status,sizeof(status),"Captured GamePad centers, clamps and cross mode.");
         } else {
-            captureResult = -1;
-            std::snprintf(status, sizeof(status), "Capture rejected: invalid GamePad clamp thresholds.");
+            captureResult=-1;
+            std::snprintf(status,sizeof(status),"GamePad capture unavailable: waiting for calibration or validated library layout.");
         }
     } else if (captureRequested) {
         captureResult = -1;
@@ -126,11 +127,12 @@ static void closed() {
     }
     captureRequested = false;
     bool ok = true;
+    ok &= WUPSStorageAPI_StoreString(nullptr,"plugin_version","1.1.3")==WUPS_STORAGE_ERROR_SUCCESS;
     auto &entry=bank.entries[bank.selected];
     entry.gamepadValid=savedClamps.load();
     for (int i=0;i<4;++i) entry.clamps[i]=clamps[i].load();
     ok &= nativepro::getSnapshot(entry.pro);
-    ok &= WUPSStorageAPI_StoreBinary(nullptr,"named_profiles_v1",&bank,sizeof(bank))==WUPS_STORAGE_ERROR_SUCCESS;
+    ok &= WUPSStorageAPI_StoreBinary(nullptr,"named_profiles_v2",&bank,sizeof(bank))==WUPS_STORAGE_ERROR_SUCCESS;
     for (int i = 0; i < CONTROLLERS; ++i) {
         ok &= WUPSStorageAPI_StoreBool(nullptr, keys[i][0], profiles[i].enabled.load()) == WUPS_STORAGE_ERROR_SUCCESS;
         ok &= WUPSStorageAPI_StoreInt(nullptr, keys[i][1], profiles[i].left.load()) == WUPS_STORAGE_ERROR_SUCCESS;
@@ -147,6 +149,8 @@ static void closed() {
         static_cast<uint32_t>(reinterpret_cast<uintptr_t>(&diagnostics)),
         sizeof(diagnostics), diagnostics.session.load()};
     ok &= WUPSStorageAPI_StoreBinary(nullptr, "gecko_diagnostics_v1", descriptor, sizeof(descriptor)) == WUPS_STORAGE_ERROR_SUCCESS;
+    uint32_t padDescriptor[5]={0x47504431,3,nativepad::diagnosticAddress(),nativepad::diagnosticSize(),diagnostics.session.load()};
+    ok &= WUPSStorageAPI_StoreBinary(nullptr,"gecko_gamepad_native_v1",padDescriptor,sizeof(padDescriptor))==WUPS_STORAGE_ERROR_SUCCESS;
     ok &= nativepro::save();
     uint32_t proDescriptor[5] = {0x50524f31,1,nativepro::diagnosticAddress(),nativepro::diagnosticSize(),diagnostics.session.load()};
     ok &= WUPSStorageAPI_StoreBinary(nullptr, "gecko_pro_native_v1", proDescriptor, sizeof(proDescriptor)) == WUPS_STORAGE_ERROR_SUCCESS;
@@ -171,7 +175,7 @@ static void captureInput(void *, WUPSConfigSimplePadData input) {
 }
 static int32_t presetDisplay(void *, char *out, int32_t size) {
     const auto &e=bank.entries[bank.selected];
-    if (size>0) std::snprintf(out,size,"< %u/8: %s >  GP:%s Pro:%s",bank.selected+1,e.name,e.gamepadValid?"saved":"empty",nativepro::valid(e.pro)?"saved":"empty");
+    if (size>0) std::snprintf(out,size,"< %u/8: %s >  GP:%s Pro:%s",bank.selected+1,e.name,e.gamepad.schema?"saved":e.gamepadValid?"recapture":"empty",nativepro::valid(e.pro)?"saved":"empty");
     return 0;
 }
 static void presetInput(void *, WUPSConfigSimplePadData input) {
@@ -234,6 +238,12 @@ static int32_t helpDisplay(void *, char *out, int32_t size) {
     if (size>0) std::snprintf(out,size,"Name: Left/Right cursor, Up/Down letter, X delete, Y space, A save, B cancel");
     return 0;
 }
+static int32_t restoreDisplay(void *, char *out, int32_t size) {
+    if (size<=0) return 0;
+    if (!active.load()) { std::snprintf(out,size,"WWHD EUR/GZ is not running"); return 0; }
+    std::snprintf(out,size,"GP: %s; Pro: %s",nativepad::restoreStatus(),nativepro::restoreStatus());
+    return 0;
+}
 static bool addItem(WUPSConfigCategoryHandle root,const char *label,
                     int32_t (*display)(void *,char *,int32_t),
                     void (*input)(void *,WUPSConfigSimplePadData)=nullptr,
@@ -260,6 +270,7 @@ static WUPSConfigAPICallbackStatus opened(WUPSConfigCategoryHandle root) {
     const bool ok = addItem(root,"Profile",presetDisplay,presetInput) &&
         addItem(root,"Profile name",nameDisplay,nameInput,nameMovement) &&
         addItem(root,"Capture Deadzones",captureDisplay,captureInput) &&
+        addItem(root,"Restore status",restoreDisplay) &&
         addItem(root,"Naming controls",helpDisplay);
     if (!ok) paused.store(false);
     return ok ? WUPSCONFIG_API_CALLBACK_RESULT_SUCCESS : WUPSCONFIG_API_CALLBACK_RESULT_ERROR;
@@ -281,13 +292,17 @@ INITIALIZE_PLUGIN() {
     }
     if (WUPSStorageAPI_GetBool(nullptr, "replay_clamps", &restore) == WUPS_STORAGE_ERROR_SUCCESS) replay.store(restore);
     presets::Bank loaded; uint32_t bankSize=0;
-    if (WUPSStorageAPI_GetBinary(nullptr,"named_profiles_v1",&loaded,sizeof(loaded),&bankSize)==WUPS_STORAGE_ERROR_SUCCESS && bankSize==sizeof(loaded) && presets::valid(loaded)) {
+    if (WUPSStorageAPI_GetBinary(nullptr,"named_profiles_v2",&loaded,sizeof(loaded),&bankSize)==WUPS_STORAGE_ERROR_SUCCESS && bankSize==sizeof(loaded) && presets::valid(loaded)) {
         bank=loaded;
     } else {
+        presets::LegacyBank legacy;uint32_t legacySize=0;
+        const bool migrated=WUPSStorageAPI_GetBinary(nullptr,"named_profiles_v1",&legacy,sizeof(legacy),&legacySize)==WUPS_STORAGE_ERROR_SUCCESS && legacySize==sizeof(legacy) && presets::migrate(legacy,bank);
         auto &e=bank.entries[0];
+        if (!migrated) {
         e.gamepadValid=savedClamps.load();
         for (int i=0;i<4;++i) e.clamps[i]=clamps[i].load();
         nativepro::getSnapshot(e.pro);
+        }
     }
     applyPreset();
     WUPSConfigAPIOptionsV1 options = {.name = "WWHD Deadzone Tool"};
@@ -303,7 +318,10 @@ ON_APPLICATION_START() {
     diagnostics.titleLow.store(static_cast<uint32_t>(title));
     diagnostics.replayCalls.store(0);
     for (auto &s : diagnostics.samples) { s.reads.store(0); s.sequence.store(0); }
-    if (supportedTitle(title)) nativepro::start(diagnostics.session.load());
+    if (supportedTitle(title)) {
+        nativepro::start(diagnostics.session.load());
+        nativepad::start(diagnostics.session.load());
+    }
     active.store(supportedTitle(title));
 }
 ON_APPLICATION_ENDS() { active.store(false); }
@@ -312,8 +330,17 @@ DECL_FUNCTION(int32_t, VPADRead, VPADChan chan, VPADStatus *data, uint32_t capac
     const bool work = active.load() && !paused.load() && chan == VPAD_CHAN_0 && data && capacity;
     // Wait for at least one successful read after init before using VPAD setters.
     if (work && profiles[0].seen.load() && replay.load() && savedClamps.load()) {
-        VPADSetLStickClampThreshold(chan, clamps[0].load(), clamps[1].load());
-        VPADSetRStickClampThreshold(chan, clamps[2].load(), clamps[3].load());
+        if (fullGamepad.load()) {
+            nativepad::restore();
+        } else {
+            // Legacy profiles have no recoverable centers. Keep their thresholds
+            // until the user explicitly captures a complete GamePad snapshot.
+            VPADSetLStickClampThreshold(chan,clamps[0].load(),clamps[1].load());
+            VPADSetRStickClampThreshold(chan,clamps[2].load(),clamps[3].load());
+            if (!clamps[1].load()) VPADDisableLStickZeroClamp(chan);
+            if (!clamps[3].load()) VPADDisableRStickZeroClamp(chan);
+            nativepad::restore(); // Publishes that centers still need capture.
+        }
         int v[4] = {};
         VPADGetLStickClampThreshold(chan, &v[0], &v[1]);
         VPADGetRStickClampThreshold(chan, &v[2], &v[3]);
@@ -344,6 +371,7 @@ DECL_FUNCTION(uint32_t, KPADReadEx, KPADChan chan, KPADStatus *data, uint32_t ca
     if (active.load() && !paused.load() && data && capacity && channel >= 0 && channel <= 3) nativepro::restore(channel);
     const uint32_t result = real_KPADReadEx(chan, data, capacity, error);
     if (!active.load() || paused.load() || !data || channel < 0 || channel > 3 || (error && *error != KPAD_ERROR_OK)) return result;
+    if (result) nativepro::ensureReady();
     auto &p = profiles[channel + 1];
     const uint32_t count = result < capacity ? result : capacity;
     for (uint32_t i = 0; i < count; ++i) {

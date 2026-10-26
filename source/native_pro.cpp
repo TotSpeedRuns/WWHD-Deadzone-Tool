@@ -13,6 +13,7 @@ static Snapshot snapshots[4];
 // copies POD state; storage IO always happens after releasing the lock.
 static std::atomic_flag busy{};
 static std::atomic<bool> layoutReady{false};
+static std::atomic<unsigned> retryReads{0};
 static uint32_t controllerTable = 0, minAddress = 0, maxAddress = 0, crossAddress = 0;
 struct ChannelDebug {
     std::atomic<uint32_t> state{0}, verifiedReads{0};
@@ -71,9 +72,7 @@ bool save() {
     }
     return ok;
 }
-void start(uint32_t session) {
-    layoutReady.store(false); debug.layout.store(0); debug.session.store(session);
-    for (auto &c : debug.channels) { c.state.store(0); c.verifiedReads.store(0); c.writes.store(0); }
+static void resolveLayout() {
     OSDynLoad_Module module;
     if (OSDynLoad_IsModuleLoaded("padscore.rpl", &module) != OS_DYNLOAD_OK) return;
     void *function = nullptr;
@@ -104,6 +103,13 @@ void start(uint32_t session) {
     if (word(mn) != 258 || word(mx) != 919 || word(cr) > 1) return;
     controllerTable=table; minAddress=mn; maxAddress=mx; crossAddress=cr;
     debug.layout.store(1); layoutReady.store(true);
+}
+void start(uint32_t session) {
+    if (busy.test_and_set()) return;
+    layoutReady.store(false); debug.layout.store(0); debug.session.store(session);
+    for (auto &c : debug.channels) { c.state.store(0); c.verifiedReads.store(0); c.writes.store(0); c.profileIndex.store(0xffffffff); }
+    resolveLayout();
+    busy.clear();
 }
 int capture() {
     if (!layoutReady.load() || busy.test_and_set()) return -1;
@@ -157,6 +163,29 @@ void restore(int channel) {
     busy.clear();
 }
 bool supported() { return layoutReady.load(); }
+void ensureReady() {
+    // padscore can become available after the application-start callback. Retry
+    // from successful game input reads without requiring the Aroma menu to open.
+    if (!layoutReady.load() && retryReads.fetch_add(1)%120==0) start(debug.session.load());
+}
+const char *restoreStatus() {
+    Snapshot snapshot;
+    if (!getSnapshot(snapshot)) return "busy";
+    if (!valid(snapshot)) return "no capture";
+    if (!layoutReady.load()) return "layout unavailable";
+    bool mismatch=false, invalid=false, waiting=false;
+    for (auto &channel:debug.channels) {
+        const auto state=channel.state.load();
+        if (state==4 || state==5) return "restoring saved centers";
+        mismatch |= state==6;
+        invalid |= state==7;
+        waiting |= state==2;
+    }
+    if (mismatch) return "threshold/mode mismatch";
+    if (invalid) return "invalid native centers";
+    if (waiting) return "waiting for matching pad";
+    return "matching pad not observed";
+}
 bool getSnapshot(Snapshot &out) {
     if (busy.test_and_set()) return false;
     out=Snapshot{};

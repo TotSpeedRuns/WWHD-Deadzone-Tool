@@ -1,0 +1,32 @@
+Native GamePad capture - WWHD Deadzone Tool 1.1.3
+
+VPADBASEGetStickOffset(chan, int16_t centers[4], uint32_t *lock) and
+VPADBASESetStickOffset(chan, const int16_t centers[4], uint32_t lock) were
+identified from the console library and vpad call sites. These accessors copy
+only four native centers and the origin-lock word using native IRQ guards.
+The exact accessor bodies, relocated common data base and mapped memory are
+validated. Shared system code below 0x02000000 must not be rejected solely for
+being outside the game's text range; OS mapping checks still apply.
+
+Within the validated vpadbase channel object (stride 0x380), centers are four
+int16 fields at +0x218..+0x21e. Byte +0x278 indicates native calibration ready;
+word +0x27c suppresses automatic origin acquisition. The report parser only
+captures new centers when both are zero, then subtracts saved centers from raw
+axes. A capture source with ready=1 and lock=0 is valid. Stored snapshots lock
+the captured centers with value 1 to prevent later automatic recentering.
+
+VPADGetLStickClampThreshold's validated relocation identifies the vpad channel
+object; cross-clamp mode is its word +0xc04. Clamps are read with public getters.
+The setters enforce min >=258 and max <=919, so min=0 requires the explicit
+VPADDisableL/RStickZeroClamp APIs. Cross mode is replayed with public APIs.
+
+Snapshots are 36-byte fixed-layout records with schema, four int32 clamps,
+four int16 centers, lock and cross mode. The named bank schema v2 includes
+one snapshot per slot. V1 bank names, selection, clamps and Pro snapshots are
+migrated without inventing missing GamePad centers; recapture is necessary.
+
+Live diagnostic schema 3 is 92 bytes, published by descriptor after menu close.
+Gecko reads only published records using signed-decimal high addresses. Live
+before/after restart readback matched captured centers/clamps/lock/cross, with
+one restore write in the new session. Physical response curve equivalence and
+first-buffered-report equivalence are not asserted. No system binary is included.

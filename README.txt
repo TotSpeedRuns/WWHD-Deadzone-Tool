@@ -1,4 +1,4 @@
-WWHD Deadzone Tool 1.0.0
+WWHD Deadzone Tool 1.1.3
 Author: Tot_sr
 
 Capture the current native controller settings and restore the selected profile
@@ -24,6 +24,7 @@ Use
    Press A to save the name or B to cancel. Move past the final letter to append.
 6. On Capture Deadzones, press A. The current settings are saved immediately.
 7. Close the menu. The selected slot is remembered and reapplied on later launches.
+8. Restore status shows readback verification or the reason replay is unavailable.
 
 Each slot holds exactly one GamePad snapshot and one physical Pro Controller
 snapshot, with separate captured settings. Empty controller entries are indicated
@@ -33,13 +34,17 @@ rejects Pro capture without replacing its saved entry. Only the matching physica
 Pro Controller receives that slot's calibration, regardless of player channel.
 Switching profiles selects the next settings to restore; it does not reset the
 hardware to its launch defaults. Recapturing records the currently applied values.
-Your previous capture is migrated into Default when upgrading. Original storage
+Old named slots retain their names, selection, clamps and Pro captures. GamePad
+entries from older versions require one recapture because they lack centers.
+Unnamed legacy settings migrate into Default. Original storage
 namespace wwhd_deadzone_lab is retained. Back up its JSON to preserve private
 controller identities and profiles. Do not install multiple copies of this plugin.
 
 What is captured
 ----------------
-GamePad: left/right max/min clamp thresholds.
+GamePad: four native stick-center offsets, left/right max/min clamps and cross-
+clamp mode. Captured centers are locked against automatic launch recentering.
+A zero-clamp disabled setting is restored using the native disable function.
 Pro Controller: four native stick-center offsets, physical Bluetooth identity,
 normalization thresholds and cross-clamp mode. Shared Pro thresholds/mode must
 already match; restore refuses a mismatch rather than altering other controllers.
@@ -47,16 +52,18 @@ This captures existing behavior, not stick positions or an automated drift test.
 
 Validation and limits
 ---------------------
-The underlying GamePad replay and native Pro origin restoration were verified
-through read-only Gecko telemetry on the user's console after a restart.
-The added named-profile menu and bank persistence are compiled and host-tested;
-console acceptance of this new interface remains pending.
-GamePad origin/mode capture and complete physical response equivalence are not
-established. Native initialization must complete before replay; already-buffered
-Pro reports may retain initial values until a fresh hardware report arrives.
+GamePad and original Wii U Pro Controller restoration were checked before and
+after a full Wii U restart on one console running TWWHD-GZ. Saved profiles were
+unchanged, both live center readbacks matched, and each controller registered a
+restore write. Both sticks/controllers were observed moving during sampling.
+The GamePad check also matched clamp thresholds, origin lock and cross mode.
+This verifies captured state and replay activity, not an exhaustive physical
+response curve. Your friend's vanilla EUR console still needs acceptance testing.
+Native initialization must complete before replay; already-buffered reports can
+retain initial values until fresh hardware input arrives.
 Supported title IDs are EUR 0005000010143600 and GZ 0005000010575a01. Game version
-is not independently gated. Native padscore instructions/layout are validated
-before any four-center-field restoration. No game or system binaries are shipped.
+is not independently gated. Native padscore/vpadbase accessor instructions and OS address mappings are
+validated before calibration access. No game or system binaries are shipped.
 
 Build and tests
 ---------------
@@ -66,7 +73,8 @@ WUPS commit: 0e26d9fd2d9db6c356c973a1a79000757802d883.
 Compile tests/deadzone_test.cpp and tests/profiles_test.cpp with a C++20 host
 compiler and assertions enabled. Tests cover native identity/signature rejection,
 four-field write isolation, title filtering, signed address encoding, profile-bank
-validation, distinct slots, storage round trips and 150050 deadzone properties.
+validation, v1-to-v2 migration, unlocked-but-calibrated capture, shared-code ranges,
+distinct slots, storage round trips and 150050 deadzone properties.
 
 Gecko diagnostics
 -----------------

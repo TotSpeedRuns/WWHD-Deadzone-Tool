@@ -5,6 +5,8 @@ namespace nativepro {
 void load();
 bool save();
 void start(uint32_t session);
+void ensureReady();
+const char *restoreStatus();
 int capture();
 void restore(int channel);
 bool supported();

@@ -38,6 +38,13 @@ if 'gecko_pro_native_v1' in items:
     assert pa%4==0 and 0x10000000<=pa<0xbfff0000
     pro_region=(pa,pn); regions.append(pro_region)
 
+pad_region=None
+if 'gecko_gamepad_native_v1' in items:
+    gm,gs,ga,gn,gt=struct.unpack('>5I',base64.b64decode(items['gecko_gamepad_native_v1'],validate=True))
+    assert gm==0x47504431 and (gs,gn) in ((1,72),(2,88),(3,92)) and gt==session
+    assert ga%4==0 and 0x10000000<=ga<0xbfff0000
+    pad_region=(ga,gn);regions.append(pad_region)
+
 sock = socket.create_connection((a.host,7332), timeout=8)
 sock.settimeout(8)
 def read(start, length):
@@ -75,6 +82,30 @@ def expected(x, y, amount):
 report = {'phase':a.phase,'utc':datetime.now(timezone.utc).isoformat(),
     'session':session,'record_address':f'{address:08x}', 'config':items,
     'samples':[], 'read_only':True, 'full_physical_response_tested':False}
+def gamepad_native_status():
+    if not pad_region:return None
+    words=struct.unpack('>'+str(pad_region[1]//4)+'I',read(pad_region[0],pad_region[1]))
+    assert words[0]==0x47504431 and words[1] in (1,2,3) and words[2]==session
+    result={'layout_validated':bool(words[3]),'state':words[4],'writes':words[5],'verified_reads':words[6],
+            'actual_centers':list(words[8:12]),'actual_clamps':list(words[12:16]),'origin_lock':words[16],'cross':words[17]}
+    result['resolve_stage']=words[7]
+    if len(words)>22: result['origin_ready']=words[22]
+    if len(words)>18:
+        result['failure']={'word_index':words[18],'actual':f'{words[19]:08x}','expected':f'{words[20]:08x}','mask':f'{words[21]:08x}'}
+    if 'named_profiles_v2' in items:
+        bank=base64.b64decode(items['named_profiles_v2'],validate=True)
+        schema,selected=struct.unpack_from('>2I',bank)
+        assert schema==2 and selected<8 and len(bank)==1000
+        offset=8+selected*124+88
+        saved_schema=struct.unpack_from('>I',bank,offset)[0]
+        result['selected_slot']=selected+1
+        result['saved_centers_present']=saved_schema==1
+        if saved_schema==1:
+            clamps=list(struct.unpack_from('>4i',bank,offset+4));centers=list(struct.unpack_from('>4h',bank,offset+20))
+            locked,cross=struct.unpack_from('>2I',bank,offset+28)
+            result['readback_matches']=words[4] in (4,5) and result['actual_centers']==centers and result['actual_clamps']==clamps and words[16:18]==(locked,cross)
+    return result
+
 def native_status():
     if not pro_region: return None
     pa,_=pro_region
@@ -98,6 +129,7 @@ def native_status():
 try:
     report['start']=header()
     report['pro_start']=native_status()
+    report['gamepad_native_start']=gamepad_native_status()
     end=time.monotonic()+a.seconds
     while time.monotonic()<end:
         for index in range(5):
@@ -120,6 +152,7 @@ try:
         time.sleep(.1)
     report['end']=header()
     report['pro_end']=native_status()
+    report['gamepad_native_end']=gamepad_native_status()
     report['channels_observed']=sorted({s['channel'] for s in report['samples']})
     report['nonzero_input_seen']=sorted({s['channel'] for s in report['samples'] if max(map(abs,s['raw']))>.01})
     report['live_profiles_match_saved']=bool(report['samples']) and all(s['config_matches'] for s in report['samples'])
@@ -130,7 +163,7 @@ try:
         report['clamp_replay_verified']=(report['end']['replay_calls']>report['start']['replay_calls'] and report['end']['actual_clamps']==saved)
     if previous:
         keys=[f'profile_{i}_{j}' for i in range(5) for j in range(3)]+['gamepad_clamps_v1','gamepad_clamps_valid','replay_clamps']
-        keys += [k for k in items if k.startswith('pro_native_v1_')]
+        keys += [k for k in items if k.startswith('pro_native_v1_') or k in ('named_profiles_v1','named_profiles_v2')]
         report['saved_settings_unchanged']=all(items[k]==previous['config'][k] for k in keys)
         report['new_title_session']=previous['session']!=session
 finally:

@@ -32,7 +32,7 @@ assert data[:4] == b'\x7fELF'
 data[9:11] = b'PL' # WUPS plugin marker; official wups_rules does the same.
 wps.write_bytes(data)
 run([sdk/f'devkitPPC/bin/powerpc-eabi-readelf{suffix}','-h',wps])
-report = dict(compiled=True, hardware_tested=False, native_pro_capture='core restore verified after restart; named-profile UI pending console acceptance',
+report = dict(compiled=True, hardware_tested=False, native_pro_capture='GamePad and Pro core restore verified after restart on GZ; see validation.json',
               wps_bytes=len(data), sha256=hashlib.sha256(data).hexdigest(),
               wups_commit=subprocess.check_output(['git','-C',str(wups),'rev-parse','HEAD'], text=True).strip())
 (root/'build-report.json').write_text(json.dumps(report,indent=2)+'\n')

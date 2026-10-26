@@ -74,5 +74,6 @@ Raw captures/configs contain controller identities; do not publish them.
 Licenses
 --------
 Plugin source: MIT, Tot_sr. Linked WUPS library: LGPL-3.0. Exact source and licenses
-are included under third-party; release archives include relinkable objects/ELF.
+are included under third-party; relinkable objects/ELF are in the repository
+under relink/. The release ZIP contains only the installable wiiu folder.
 WUT license: third-party/WUT-LICENSE.txt. See native-pro-research.txt for details.

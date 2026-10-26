@@ -11,6 +11,11 @@
   "pro_restore_writes": 1,
   "movement_observed_on_both_controllers": true,
   "full_physical_response_curve_tested": false,
-  "friend_vanilla_eur_acceptance_pending": true,
-  "host_profile_migration_and_origin_readiness_tests_passed": true
+  "friend_vanilla_eur_acceptance_pending": false,
+  "host_profile_migration_and_origin_readiness_tests_passed": true,
+  "vanilla_eur_testing": {
+    "tested": true,
+    "evidence": "Reported by Tot_sr",
+    "equivalent_before_after_telemetry_collected": false
+  }
 }

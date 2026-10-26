@@ -1,0 +1,89 @@
+Deadzone Research
+Author: Tot_sr
+Scope: GamePad and original Wii U Pro Controller paths examined for WWHD Deadzone Tool.
+
+The useful distinction is between stick calibration and the deadzone itself.
+A center/origin is the reading the input library treats as neutral. An inner
+clamp/deadzone suppresses small movement around that neutral value. An outer
+clamp sets where the reported stick reaches its normalized maximum. Together
+with the two-axis clamp mode and any game-side processing, these determine what
+movement reaches gameplay.
+
+A simplified pipeline is:
+physical stick -> raw reading -> subtract stored center -> clamp/normalize -> game
+
+Changing the stored center can change where a fixed deadzone lies physically,
+even if its numerical threshold stays the same. For example, in a simplified
+one-axis calculation a raw reading of 2320 becomes 272 with center 2048, or 240
+with center 2080. With an inner threshold of 258, the first can register movement
+while the second remains neutral. These are illustrative numbers, not a measured
+response curve or a claim about every diagonal/clamping path.
+
+Library initialization or an explicit recalibration request can reacquire stick
+centers. A game launch can therefore change effective behavior while leaving the
+clamp thresholds unchanged. Our findings do not establish that every Wii U game
+randomizes or changes its deadzone size on every launch.
+
+GamePad
+-------
+The GamePad path uses vpadbase for lower-level input/calibration and vpad for
+processed stick values. Analysis identified four center offsets, calibration
+readiness, an origin-lock control, left/right max/min thresholds and cross-clamp
+mode. The tool captures the existing centers; it does not calculate a new center
+from the stick position at the instant A is pressed.
+
+The readiness byte and origin-lock word serve different purposes. An initialized
+controller can have valid centers with the lock cleared. Captured profiles lock
+the saved centers against automatic replacement when replaying them.
+
+The examined clamp setters enforce a minimum of 258 and maximum of 919. A zero
+inner threshold is represented through separate zero-clamp disable APIs; passing
+zero to the normal threshold setter alone does not preserve that disabled state.
+These values are library units, not universal percentages of physical stick travel.
+
+Original Wii U Pro Controller
+----------------------------
+The examined padscore path decodes the report's four stick axes, maintains native
+per-controller centers and subtracts them before processed input reaches KPAD.
+The centers are stored separately from the GamePad's calibration. The plugin
+matches a saved Pro snapshot to that physical controller's Bluetooth identity,
+so moving it to another player channel does not assign another pad's centers.
+
+In this library revision, the Pro normalization thresholds/mode are shared.
+The tool checks them against the capture and refuses a mismatch instead of
+silently overwriting shared settings. It restores only the identified native
+center fields for the matching original Wii U Pro Controller.
+
+What the plugin does
+--------------------
+A profile stores one GamePad and one Pro capture. The selected profile is
+reapplied automatically in supported WWHD launches once the input libraries and
+controller initialization are ready. Repeated readbacks detect when native state
+needs restoration. No manual restore button or menu visit is required for replay.
+A disconnected Pro is handled when its matching controller becomes ready.
+Older GamePad captures need one recapture because they saved thresholds only.
+
+Evidence and limits
+-------------------
+On one Wii U running TWWHD-GZ, saved profiles were compared before and after a
+full restart without recapturing. Both controllers' native center readbacks
+matched their captures, each recorded a restore write, and stick movement was
+observed on both. GamePad clamps, origin lock and cross mode also matched.
+The tool was also tested on a vanilla European copy of The Wind Waker HD,
+as reported by Tot_sr. The detailed before/after telemetry checks above were
+performed on TWWHD-GZ; equivalent telemetry was not collected for the vanilla test.
+
+These results verify the tested cases, rather than every firmware/library revision
+or controller. They do not establish a complete physical response curve or
+first-buffered-sample equivalence. Games can apply additional input filtering.
+
+Sources
+-------
+- devkitPro/WUT input APIs: https://github.com/devkitPro/wut/blob/master/include/vpad/input.h
+- WPAD/KPAD definitions: https://github.com/devkitPro/wut/blob/master/include/padscore/wpad.h
+- Project GamePad analysis: https://github.com/TotSpeedRuns/WWHD-Deadzone-Tool/blob/main/native-gamepad-research.txt
+- Project Pro analysis: https://github.com/TotSpeedRuns/WWHD-Deadzone-Tool/blob/main/native-pro-research.txt
+- Sanitized restart validation: https://github.com/TotSpeedRuns/WWHD-Deadzone-Tool/blob/main/validation.json
+
+Internal layout details are findings from the inspected libraries, not a stable
+Nintendo API guarantee. Native library instruction/mapping checks remain necessary.

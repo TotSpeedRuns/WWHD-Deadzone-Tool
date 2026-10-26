@@ -3,6 +3,7 @@ Author: Tot_sr
 
 Capture the current native controller settings and restore the selected profile
 when European WWHD v0 or TWWHD-GZ launches under Aroma.
+For the calibration/deadzone explanation and testing scope, see Deadzone Research.txt.
 
 Requirements
 ------------
@@ -58,7 +59,8 @@ unchanged, both live center readbacks matched, and each controller registered a
 restore write. Both sticks/controllers were observed moving during sampling.
 The GamePad check also matched clamp thresholds, origin lock and cross mode.
 This verifies captured state and replay activity, not an exhaustive physical
-response curve. Your friend's vanilla EUR console still needs acceptance testing.
+response curve. Testing on vanilla European WWHD was also reported by Tot_sr;
+the detailed telemetry evidence above was collected on TWWHD-GZ.
 Native initialization must complete before replay; already-buffered reports can
 retain initial values until fresh hardware input arrives.
 Supported title IDs are EUR 0005000010143600 and GZ 0005000010575a01. Game version

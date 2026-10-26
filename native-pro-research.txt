@@ -1,0 +1,29 @@
+Native Wii U Pro calibration research - WWHD Deadzone Tool 1.0.0
+
+Console padscore.rpl SHA256:
+243f1547615d68194e21c056269e31b4c6fe7d5cd226237a6414d93e969eac94
+
+Offline RPL-relative addresses (not fixed live addresses):
+WPADRecalibrate: 0x02008a14. Resets calibration-ready flag at channel object +0xb21.
+Pro report decoder: 0x02016ac0, unpacking the four 12-bit stick axes around 0x800.
+Origin capture path: 0x02016c00..0x02016c28, guarded by calibration-ready flag.
+Origin subtraction path: 0x02016c30..0x02016c98.
+Controller pointer table: DATA 0x10008380, indexed by channel*4.
+Per-controller origin offsets, in LX/LY/RX/RY order: 0x888,0x88e,0x894,0x89a.
+Controller object +0x900 must be report format 0x16 (native Pro).
+Controller object +0xb21 must be 1 (calibrated).
+KPAD Pro normalization thresholds at DATA 0x100027a4/0x100027a8: 258/919.
+KPAD cross-clamp mode at DATA 0x1000283c: 0 or 1.
+
+Live layout is decoded from relocated instructions of the exported function and
+checked against the Pro parser/normalizer. Saved profiles never store pointers.
+The physical controller's identity comes from WPADGetAddress.
+
+Only the four int16 origin fields can be restored. No code, encryption state,
+report buffers, callbacks, controller identity, or adjacent state is overwritten.
+Threshold/mode mismatch refuses restore rather than writing shared globals.
+
+Host tests check field isolation, identity/profile validation, and relocation math.
+Core GamePad and Pro restoration were verified after restart on the user console.
+The named-profile menu still needs console acceptance. Early buffered reports
+and reconnect timing limit first-sample guarantees.

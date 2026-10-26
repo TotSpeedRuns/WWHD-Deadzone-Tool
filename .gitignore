@@ -1,0 +1,9 @@
+build/
+__pycache__/
+*.wps
+*.elf
+*.o
+*.map
+build-report.json
+verification/
+ftp-delivery.json

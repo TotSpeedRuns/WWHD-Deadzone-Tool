@@ -1,8 +1,8 @@
-WWHD Deadzone Tool 1.1.3
+WWHD Deadzone Tool 1.2.0
 Author: Tot_sr
 
 Capture the current native controller settings and restore the selected profile
-when European WWHD v0 or TWWHD-GZ launches under Aroma.
+when North American/European WWHD, TWWHD Randomizer or TWWHD-GZ launches under Aroma.
 For the calibration/deadzone explanation and testing scope, see Deadzone Research.txt.
 
 Requirements
@@ -17,7 +17,7 @@ folder using a PC, update Aroma, and then reinstall the plugin.
 Use
 ---
 1. Install WWHDDeadzone.wps in SD:/wiiu/environments/aroma/plugins/ and restart.
-2. Launch WWHD EUR or GZ and connect one original Wii U Pro Controller.
+2. Launch a supported WWHD title and connect one original Wii U Pro Controller.
 3. Open L + D-pad Down + Minus -> WWHD Deadzone Tool.
 4. On Profile, use Left/Right to choose one of eight saved slots.
 5. On Profile name, press A to edit up to 24 characters. Left/Right moves the
@@ -63,8 +63,21 @@ response curve. Testing on vanilla European WWHD was also reported by Tot_sr;
 the detailed telemetry evidence above was collected on TWWHD-GZ.
 Native initialization must complete before replay; already-buffered reports can
 retain initial values until fresh hardware input arrives.
-Supported title IDs are EUR 0005000010143600 and GZ 0005000010575a01. Game version
-is not independently gated. Native padscore/vpadbase accessor instructions and OS address mappings are
+Supported title IDs:
+  North American WWHD: 0005000010143500
+  TWWHD Randomizer:    0005000010143599
+  European WWHD:      0005000010143600
+  TWWHD-GZ:           0005000010575a01
+Version 1.2.0 adds the North American game and randomizer channel to the launch
+guard; the native capture/restore implementation and saved profile format are
+unchanged. The selected profile is shared across supported titles, with no need
+to capture again when switching games with the same controllers. Randomizer and
+North American console acceptance testing is still pending; the EUR/GZ testing
+above does not establish randomizer compatibility on hardware.
+The randomizer channel ID is defined by upstream TWWHD Randomizer:
+https://github.com/SuperDude88/TWWHD-Randomizer/blob/cb7b1c979ac031c8eae91e23fb00fc5f4d042efa/tweaks.cpp#L840
+Custom repacks with a different title ID are not enabled automatically.
+Game version is not independently gated. Native padscore/vpadbase accessor instructions and OS address mappings are
 validated before calibration access. No game or system binaries are shipped.
 
 Build and tests

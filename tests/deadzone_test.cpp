@@ -22,7 +22,12 @@ int main() {
     }
     assert(supportedTitle(0x0005000010143600ULL));
     assert(supportedTitle(0x0005000010575a01ULL));
-    assert(!supportedTitle(0x0005000010143500ULL));
+    assert(supportedTitle(0x0005000010143500ULL));
+    assert(supportedTitle(0x0005000010143599ULL));
+    assert(!supportedTitle(0x0005000010143400ULL)); // Japanese WWHD stays unsupported.
+    assert(!supportedTitle(0x0005000010143598ULL)); // No adjacent/custom ID wildcard.
+    assert(!supportedTitle(0x000500001014359aULL));
+    assert(!supportedTitle(0x0005000e10143500ULL)); // Update title is not the game.
     assert(!supportedTitle(0x0005000010101c00ULL));
     assert(!supportedTitle(0));
     nativepro::Snapshot saved[4];

@@ -17,7 +17,7 @@
 
 WUPS_PLUGIN_NAME("WWHD Deadzone Tool");
 WUPS_PLUGIN_DESCRIPTION("Capture and restore GamePad thresholds and per-device Pro stick origins");
-WUPS_PLUGIN_VERSION("1.1.3");
+WUPS_PLUGIN_VERSION("1.2.0");
 WUPS_PLUGIN_AUTHOR("Tot_sr");
 WUPS_PLUGIN_LICENSE("MIT");
 WUPS_USE_STORAGE("wwhd_deadzone_lab");
@@ -109,7 +109,7 @@ static void closed() {
         }
     } else if (captureRequested) {
         captureResult = -1;
-        std::snprintf(status, sizeof(status), "Capture requires WWHD EUR/GZ and a successful GamePad read this launch.");
+        std::snprintf(status, sizeof(status), "Capture requires a supported WWHD title and a successful GamePad read this launch.");
     }
     if (capture && active.load()) {
         const int proCaptured = nativepro::capture();
@@ -127,7 +127,7 @@ static void closed() {
     }
     captureRequested = false;
     bool ok = true;
-    ok &= WUPSStorageAPI_StoreString(nullptr,"plugin_version","1.1.3")==WUPS_STORAGE_ERROR_SUCCESS;
+    ok &= WUPSStorageAPI_StoreString(nullptr,"plugin_version","1.2.0")==WUPS_STORAGE_ERROR_SUCCESS;
     auto &entry=bank.entries[bank.selected];
     entry.gamepadValid=savedClamps.load();
     for (int i=0;i<4;++i) entry.clamps[i]=clamps[i].load();
@@ -240,7 +240,7 @@ static int32_t helpDisplay(void *, char *out, int32_t size) {
 }
 static int32_t restoreDisplay(void *, char *out, int32_t size) {
     if (size<=0) return 0;
-    if (!active.load()) { std::snprintf(out,size,"WWHD EUR/GZ is not running"); return 0; }
+    if (!active.load()) { std::snprintf(out,size,"Supported WWHD title is not running"); return 0; }
     std::snprintf(out,size,"GP: %s; Pro: %s",nativepad::restoreStatus(),nativepro::restoreStatus());
     return 0;
 }

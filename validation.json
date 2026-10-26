@@ -13,6 +13,13 @@
   "full_physical_response_curve_tested": false,
   "friend_vanilla_eur_acceptance_pending": false,
   "host_profile_migration_and_origin_readiness_tests_passed": true,
+  "title_support_extension": {
+    "version": "1.2.0",
+    "change": "Add exact North American WWHD and TWWHD Randomizer title IDs; calibration implementation unchanged",
+    "randomizer_upstream_commit": "cb7b1c979ac031c8eae91e23fb00fc5f4d042efa",
+    "north_american_hardware_tested": false,
+    "randomizer_hardware_tested": false
+  },
   "vanilla_eur_testing": {
     "tested": true,
     "evidence": "Reported by Tot_sr",

@@ -69,7 +69,8 @@ def header():
     words = struct.unpack('>10I',read(address,40))
     assert words[:3] == (magic, schema, session), 'Live diagnostic record does not match current descriptor'
     title = (words[3]<<32)|words[4]
-    assert title in (0x0005000010143600,0x0005000010575a01), 'Supported game not running'
+    assert title in (0x0005000010143500,0x0005000010143599,
+                     0x0005000010143600,0x0005000010575a01), 'Supported game not running'
     return {'title':f'{title:016x}', 'replay_calls':words[5], 'actual_clamps':list(words[6:10])}
 
 def expected(x, y, amount):
